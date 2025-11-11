@@ -1,0 +1,262 @@
+type Usuario {
+    usuarioId: ID!
+    email: String!
+    nombreCompleto: String!
+    telefono: String
+    rol: RolUsuario!
+    estado: EstadoUsuario!
+    fotoPerfilUrl: String
+    biometriaHabilitada: Boolean!
+    idiomaPreferido: String!
+    notificacionesPush: Boolean!
+    fechaCreacion: String!
+    ultimoAcceso: String
+}
+
+type Tarjeta {
+    tarjetaId: ID!
+    usuario: Usuario!
+    numeroTarjeta: String!
+    uidNfc: String
+    tipoTarjeta: TipoTarjeta!
+    saldo: Float!
+    estado: EstadoTarjeta!
+    fechaExpiracion: String
+    suscripcionActiva: Boolean!
+    planSuscripcion: String
+    fechaEmision: String!
+}
+
+type Pasaje {
+    pasajeId: ID!
+    tarjeta: Tarjeta!
+    vehiculo: Vehiculo!
+    ruta: Ruta
+    fechaHoraValidacion: String!
+    monto: Float!
+    estado: EstadoPasaje!
+    latitudValidacion: Float
+    longitudValidacion: Float
+    metodoPago: String!
+    descuentoAplicado: Float
+}
+
+type Notificacion {
+    notificacionId: ID!
+    usuarioId: ID!
+    titulo: String!
+    mensaje: String!
+    fechaHoraEnvio: String!
+    fechaHoraLeido: String
+    estado: EstadoNotificacion!
+}
+
+type TelemetriaGPS {
+    telemetriaId: ID!
+    vehiculoId: ID!
+    placaVehiculo: String!
+    latitud: Float!
+    longitud: Float!
+    timestamp: String!
+    velocidad: Float
+}
+
+type Transaccion {
+    transaccionId: ID!
+    tarjetaId: ID!
+    tipoTransaccion: TipoTransaccion!
+    monto: Float!
+    fechaHora: String!
+    descripcion: String
+}
+
+type DemandPrediction {
+    rutaId: ID!
+    pasajerosPredichos: Int!
+    confianza: Float!
+    ocupacionPredicha: Float!
+    nivelDemanda: String!
+    recomendacion: String!
+}
+
+type Vehiculo {
+    vehiculoId: ID!
+    placa: String!
+    tipoVehiculo: TipoVehiculo!
+    modelo: String!
+    capacidad: Int!
+    anioFabricacion: Int
+    dispositivoGpsId: String
+    estadoOperativo: String!
+    ultimaMantenimiento: String
+}
+
+type Ruta {
+    rutaId: ID!
+    codigoRuta: String!
+    nombre: String!
+    descripcion: String
+    paradasJson: String
+    horarioInicio: String
+    horarioFin: String
+    frecuenciaMinutos: Int
+    activa: Boolean!
+}
+
+type AuthPayload {
+    accessToken: String!
+    refreshToken: String!
+    tokenType: String!
+    expiresIn: Int!
+    user: Usuario!
+}
+
+type BalanceInfo {
+    saldo: Float!
+    ultimoMovimiento: String
+    tarjetaId: ID!
+}
+
+enum RolUsuario {
+    PASAJERO
+    CONDUCTOR
+    ADMIN
+    OPERADOR
+}
+
+enum EstadoUsuario {
+    ACTIVO
+    INACTIVO
+    BLOQUEADO
+    PENDIENTE_VERIFICACION
+}
+
+enum TipoTarjeta {
+    ESTANDAR
+    ESTUDIANTE
+    TERCERA_EDAD
+    DISCAPACITADO
+    CORPORATIVA
+}
+
+enum EstadoTarjeta {
+    ACTIVA
+    BLOQUEADA
+    PERDIDA
+    VENCIDA
+}
+
+enum EstadoPasaje {
+    VALIDADO
+    CANCELADO
+    REEMBOLSADO
+}
+
+enum TipoVehiculo {
+    BUS
+    METRO
+    TREN_LIGERO
+    TRANVIA
+}
+
+enum EstadoNotificacion {
+    NO_LEIDO
+    LEIDO
+}
+
+enum TipoTransaccion {
+    RECARGA
+    PAGO_PASAJE
+    REEMBOLSO
+    TRANSFERENCIA
+    AJUSTE
+}
+
+input LoginInput {
+    email: String!
+    password: String!
+}
+
+input RegisterInput {
+    email: String!
+    password: String!
+    nombreCompleto: String!
+    telefono: String
+    rol: RolUsuario
+    idiomaPreferido: String
+}
+
+input RecargaInput {
+    tarjetaId: ID!
+    monto: Float!
+    metodoPago: String!
+}
+
+type Query {
+    # Autenticación
+    me: Usuario!
+    
+    # Tarjetas
+    misTarjetas: [Tarjeta!]!
+    tarjeta(tarjetaId: ID!): Tarjeta
+    
+    # Balance
+    balance(tarjetaId: ID!): BalanceInfo!
+    
+    # Historial
+    historialPasajes(tarjetaId: ID!, limit: Int, offset: Int): [Pasaje!]!
+    
+    # Rutas
+    rutas: [Ruta!]!
+    ruta(rutaId: ID!): Ruta
+    rutasActivas: [Ruta!]!
+    
+    # Vehículos
+    vehiculos: [Vehiculo!]!
+    vehiculo(vehiculoId: ID!): Vehiculo
+    
+    # Notificaciones
+    notificacionesByUsuario(usuarioId: ID!): [Notificacion!]!
+    contarNotificacionesNoLeidas(usuarioId: ID!): Int!
+    
+    # Telemetría GPS
+    telemetriaByVehiculo(vehiculoId: ID!): [TelemetriaGPS!]!
+    ultimaTelemetriaVehiculo(vehiculoId: ID!): TelemetriaGPS!
+    telemetriaByRuta(rutaId: ID!): [TelemetriaGPS!]!
+    
+    # Machine Learning
+    predictDemand(rutaId: ID!, fechaHora: String): DemandPrediction!
+    isMLModelTrained: Boolean!
+}
+
+type Mutation {
+    # Autenticación
+    login(input: LoginInput!): AuthPayload!
+    register(input: RegisterInput!): AuthPayload!
+    
+    # Recargas
+    recargarSaldo(input: RecargaInput!): Tarjeta!
+    
+    # Notificaciones
+    marcarNotificacionLeida(notificacionId: ID!): Boolean!
+}
+
+type Subscription {
+    # Saldo actualizado en tiempo real
+    saldoActualizado(tarjetaId: ID!): BalanceInfo!
+    
+    # Ubicación de vehículos en tiempo real
+    vehiculoActualizado(rutaId: ID!): Vehiculo!
+    
+    # Notificaciones en tiempo real
+    nuevaNotificacion(usuarioId: ID!): Notificacion!
+    
+    # Telemetría en tiempo real
+    telemetriaActualizada(vehiculoId: ID!): TelemetriaGPS!
+}
+
+schema {
+    query: Query
+    mutation: Mutation
+    subscription: Subscription
+}
